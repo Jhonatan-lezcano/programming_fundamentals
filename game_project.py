@@ -37,6 +37,9 @@ class Player:
             self.token = 'O' if previous_player_token.lower() == 'x' else 'X' 
             print(f'{self.name}, te tocará jugar con la siguente ficha: {self.token}')
 
+    def set_score(self, points):
+        self.score += points
+        
     
     def get_token(self):
         return self.token
@@ -130,8 +133,34 @@ def place_token(table, player, column):
     table[row][column] = player.token
     return True
     
+def is_draw(table):
+    for column in range(len(table[0])):
+        if valid_row(table, column) != -1:
+            return False
+    return True
 
+def draw(player1, player2):
+    print('la partida ha quedado en empate, ambos tienen 1 punto')
+    player1.set_score(1)
+    player2.set_score(1)
 
+def score():
+    print('''
+*** TABLA DE POSICIONES ***
+1. Andrea 110 puntos acumulados. Última partida en 2022-08-16 a las 13:50
+2. Camilo 80 puntos acumulados. Última partida en 2021-02-25 a las 10:15
+3. Tatiana 75 puntos cumulados. Última partida en 2022-08-16 a las 13:50
+4. Juana 70 puntos acumulados. Última partida en 2022-05-10 a las 14:00
+5. Johana 60 puntos acumulados. Última partida en 2022-05-11 a las 14:00
+''')
+
+def replay():
+    while True:
+        choice = input('¿Desean volver a tomar la partida Si [S] No [N]:')
+        if choice.lower() == 's':
+            return True
+        elif choice.lower() == 'n':
+            return False
 
 def game(table, player_1, player_2):
     current_player = choose_random_player(player_1, player_2)
@@ -140,6 +169,11 @@ def game(table, player_1, player_2):
         render_table(table)
         column = print_request_column(current_player, table)
         current_place_token = place_token(table, current_player, column)
+        if is_draw(table):
+            render_table(table)
+            draw(player_1, player_2)
+            score()
+            break
         current_player = player_1 if current_player == player_2 else player_2
     
 
@@ -149,13 +183,9 @@ def runGame():
     while game_status != 'win' and game_status != 'end' :    
         table = create_table(ROWS, COLUMNS)
         game(table, player_1, player_2)
-
-
-        
-        # while gameStatus != "win" and gameStatus != "end":
-        #     playerNumber = processInput()
-        #     gameStatus, magicNumber = update(gameStatus,magicNumber,playerNumber)
-        #     render(gameStatus,magicNumber)
+        if not replay():
+            print('¡Gracias por jugar!')
+            break
 
 
 # Launch the game
