@@ -5,7 +5,8 @@ import os
 ROWS = 6
 COLUMNS = 7
 EMPTY_CELL = '.'
-
+X_TOKEN = 'x'
+O_TOKEN = 'o'
 
 
 class Player:
@@ -17,8 +18,8 @@ class Player:
         while True:
             try:
                 token = input(message)
-                if token.lower() != 'x' and token.lower() != 'o':
-                    print('Elige un ficha entre [X] o [O]', token.lower(), token.lower() != 'x', token.lower() != 'o')
+                if token.lower() != X_TOKEN and token.lower() != O_TOKEN:
+                    print('Elige un ficha entre [X] o [O]')
                 else:
                     return token.upper()
             except ValueError:
@@ -34,7 +35,7 @@ class Player:
             self.token = token
         else:
             previous_player_token = player.get_token()
-            self.token = 'O' if previous_player_token.lower() == 'x' else 'X' 
+            self.token = O_TOKEN.upper() if previous_player_token.lower() == X_TOKEN else X_TOKEN.upper()
             print(f'{self.name}, te tocará jugar con la siguente ficha: {self.token}')
 
     def set_score(self, points):
@@ -50,18 +51,14 @@ class Player:
 
 
 def init():
-    """
-    Initialize game
-    """
     player_1 = Player()
     player_2 = Player()
     player_1.set_name('1')
     player_1.set_token()
     player_2.set_name('2')
     player_2.set_token(player_1)
-    game_status = None
 
-    return player_1, player_2, game_status
+    return player_1, player_2
 
 def create_table(rows, columns): 
     table = []
@@ -79,7 +76,7 @@ def render_separator(table):
     print('')
 
 def render_table(table):
-    print(' ', end='')
+    # print(' ', end='')
     for i in range(1,len(table[0]) + 1):
         print(i, end='')
     print('')
@@ -111,8 +108,8 @@ def print_request_column(player, table):
     while True:
         column = valid_int(f'{player.name}, indica un número de columna o pulsa [S] para tentar a la suerte: ')
         if 0 <=column > len(table[0]):
-            print('Columna no valida')
-        elif table[0][column - 1] != '.':
+            print(f'numero de columna no permitido, ingrese un numero entre 1 y {COLUMNS}')
+        elif table[0][column - 1] != EMPTY_CELL:
             print('La columna seleccionada ya está llena')
         else:
             return column - 1
@@ -120,7 +117,7 @@ def print_request_column(player, table):
 def valid_row(table, column):
     index = len(table) - 1
     while index >= 0:
-        if table[index][column] == '.':
+        if table[index][column] == EMPTY_CELL:
             return index
         index -= 1
     return -1
@@ -165,10 +162,9 @@ def replay():
 def game(table, player_1, player_2):
     current_player = choose_random_player(player_1, player_2)
     while True:
-
         render_table(table)
         column = print_request_column(current_player, table)
-        current_place_token = place_token(table, current_player, column)
+        place_token(table, current_player, column)
         if is_draw(table):
             render_table(table)
             draw(player_1, player_2)
@@ -179,8 +175,8 @@ def game(table, player_1, player_2):
 
 def runGame():
     print('*** CUATRO SEGUIDAS***')
-    player_1, player_2, game_status = init()
-    while game_status != 'win' and game_status != 'end' :    
+    player_1, player_2 = init()
+    while True :    
         table = create_table(ROWS, COLUMNS)
         game(table, player_1, player_2)
         if not replay():
