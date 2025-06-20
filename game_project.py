@@ -1,13 +1,13 @@
-# Import the random package
 import random
-import os
+from datetime import datetime
 
 ROWS = 6
 COLUMNS = 7
 EMPTY_CELL = '.'
 X_TOKEN = 'x'
 O_TOKEN = 'o'
-
+DIRECTIONS = ['top', 'top_left', 'top_right', 'bottom', 'bottom_left', 'bottom_right', 'left', 'right']
+WIN_TOKENS = 4
 
 class Player:
     name = ''
@@ -47,9 +47,40 @@ class Player:
     
     def get_name(self):
         return self.name
+    
+class Score:
+    dic_players = dict()
+    historical_score = []
 
+    def add_players(self, players):
+        for p in players:
+            if p.name not in self.dic_players:
+                self.dic_players[p.name] = p
+                self.dic_players[p.name].date = datetime.now()
+            else:
+                self.dic_players[p.name].score = self.dic_players[p.name].score + p.score
+                self.dic_players[p.name].date = datetime.now()
 
+    def save_score_in_hist(self, hist):
+        self.historical_score.append(hist)
 
+    def print_score(self):
+        sorted_score = sorted(self.dic_players.values(), key=lambda p: p.score, reverse=True)
+        crr_score = []
+        for i, player in enumerate(sorted_score):
+            message = f'{i+1}. {player.name} {player.score} puntos acumulados. Última partida en {player.date.date()} a las {player.date.time().strftime("%H:%M %p")}' 
+            print(message)
+            crr_score.append(message)
+        self.save_score_in_hist(crr_score)
+
+    def export_hist(self):
+        with open('historical_score.txt', 'w', encoding='utf-8') as hist:
+            print('*** TABLA DE POSICIONES ***', file=hist)
+            for h in self.historical_score:
+                for hi in h:
+                    print(hi, file=hist)
+                print('', file=hist)
+  
 def init():
     player_1 = Player()
     player_2 = Player()
@@ -57,8 +88,9 @@ def init():
     player_1.set_token()
     player_2.set_name('2')
     player_2.set_token(player_1)
+    table = create_table(ROWS, COLUMNS)
 
-    return player_1, player_2
+    return player_1, player_2, table
 
 def create_table(rows, columns): 
     table = []
@@ -129,7 +161,137 @@ def place_token(table, player, column):
     
     table[row][column] = player.token
     return True
-    
+
+#region win
+def count_right(row, column, table, player):
+    columns = len(table[0])
+    count = 0
+    for i in range(column, columns):
+        if count == WIN_TOKENS:
+            return count
+        if table[row][i] == player.token:
+            count += 1
+        else:
+            count = 0
+    return count
+
+def count_left(row, column, table, player): 
+    count = 0
+    for i in range(column, -1, -1):
+        if count == WIN_TOKENS:
+            return count
+        if table[row][i] == player.token:
+            count += 1
+        else:
+            count: 0
+    return count
+
+def count_top(row, column, table, player):
+    count = 0    
+    for i in range(row, -1, -1):
+        if count == WIN_TOKENS:
+            return count
+        if table[i][column] == player.token:
+            count += 1
+        else:
+            count = 0
+    return count
+
+def count_top_right(row, column, table, player):
+    count = 0
+    irow = row
+    icolumn = column
+    while irow >= 0 and icolumn < len(table[0]):
+        if count == WIN_TOKENS:
+            return count
+        if table[irow][icolumn] == player.token:
+            count += 1
+        else:
+            count = 0
+        irow -= 1
+        icolumn += 1
+    return 0
+
+def count_top_left(row, column, table, player):
+    count = 0
+    irow = row
+    icolumn = column
+    while irow >= 0 and icolumn >= 0:
+        if count == WIN_TOKENS:
+            return count
+        if table[irow][icolumn] == player.token:
+            count += 1
+        else:
+            count = 0
+        irow -= 1
+        icolumn -= 1
+    return 0
+
+def count_bottom(row, column, table, player):
+    count = 0
+    rows = len(table)
+    for i in range(row, rows):
+        if count == WIN_TOKENS:
+            return count
+        if table[i][column] == player.token:
+            count += 1
+        else:
+            count = 0
+    return count
+
+def count_bottom_right(row, column, table, player):
+    count = 0
+    irow = row
+    icolumn = column
+    while irow < len(table) and icolumn < len(table[0]):
+        if count == WIN_TOKENS:
+            return count
+        if table[irow][icolumn] == player.token:
+            count += 1
+        else:
+            count = 0
+        irow += 1
+        icolumn += 1
+    return count
+
+def count_bottom_left(row, column, table, player):
+    count = 0
+    irow = row
+    icolumn = column
+    while irow < len(table) and icolumn >= 0:
+        if count == WIN_TOKENS:
+            return count
+        if table[irow][icolumn] == player.token:
+            count += 1
+        else:
+            count = 0
+        irow += 1
+        icolumn -= 1
+    return count
+
+def get_count(row, column, table, player):
+    for direction in DIRECTIONS:
+        count_function = globals()[f'count_{direction}']
+        count = count_function(row, column, table, player)
+        if count >= WIN_TOKENS:
+            return count
+    return 0
+
+def is_win(table, player):
+    for i, row in enumerate(table):
+        for j, column in enumerate(row):
+            count_tokens = get_count(i, j, table, player)
+            if count_tokens >= WIN_TOKENS: 
+                return True
+    return False 
+
+def win_game(player):
+    print(f'¡Felicitaciones, {player.name}, has ganado la partida!')
+    print('Has sumado 3 puntos en esta partida')
+    player.set_score(3)        
+#endregion
+
+#region draw    
 def is_draw(table):
     for column in range(len(table[0])):
         if valid_row(table, column) != -1:
@@ -140,16 +302,7 @@ def draw(player1, player2):
     print('la partida ha quedado en empate, ambos tienen 1 punto')
     player1.set_score(1)
     player2.set_score(1)
-
-def score():
-    print('''
-*** TABLA DE POSICIONES ***
-1. Andrea 110 puntos acumulados. Última partida en 2022-08-16 a las 13:50
-2. Camilo 80 puntos acumulados. Última partida en 2021-02-25 a las 10:15
-3. Tatiana 75 puntos cumulados. Última partida en 2022-08-16 a las 13:50
-4. Juana 70 puntos acumulados. Última partida en 2022-05-10 a las 14:00
-5. Johana 60 puntos acumulados. Última partida en 2022-05-11 a las 14:00
-''')
+#endregion
 
 def replay():
     while True:
@@ -159,30 +312,39 @@ def replay():
         elif choice.lower() == 'n':
             return False
 
-def game(table, player_1, player_2):
+def game(table, player_1, player_2, score):
     current_player = choose_random_player(player_1, player_2)
     while True:
         render_table(table)
         column = print_request_column(current_player, table)
-        place_token(table, current_player, column)
+        token = place_token(table, current_player, column)
+        if not token:
+            print('No se puede colocar en esta columna')
+        win = is_win(table, current_player)
+        if win:
+            render_table(table)
+            win_game(current_player)
+            score.add_players([player_1, player_2])
+            score.print_score()
+            break
         if is_draw(table):
             render_table(table)
             draw(player_1, player_2)
-            score()
+            score.print_score()
             break
         current_player = player_1 if current_player == player_2 else player_2
     
 
 def runGame():
     print('*** CUATRO SEGUIDAS***')
-    player_1, player_2 = init()
+    score = Score()
     while True :    
-        table = create_table(ROWS, COLUMNS)
-        game(table, player_1, player_2)
+        player_1, player_2, table = init()
+        game(table, player_1, player_2, score)
         if not replay():
             print('¡Gracias por jugar!')
+            score.export_hist()
             break
-
 
 # Launch the game
 runGame()
