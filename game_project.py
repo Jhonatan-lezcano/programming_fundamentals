@@ -10,10 +10,9 @@ else:
     import tty
 
 def get_key():
-    """Devuelve 'up', 'down', 'enter', o el carácter presionado"""
     if os.name == 'nt':
         key = msvcrt.getch()
-        if key == b'\xe0':  # Tecla especial (como flechas)
+        if key == b'\xe0': 
             key = msvcrt.getch()
             if key == b'H':
                 return 'up'
@@ -24,8 +23,8 @@ def get_key():
         else:
             return key.decode()
     else:
-        fd = sys.stdin.fileno()
-        old_settings = termios.tcgetattr(fd)
+        fd = sys.stdin.fileno() # obtener el descriptor de archivo del teclado
+        old_settings = termios.tcgetattr(fd) # guarda la configuración actual de la terminal
         try:
             tty.setcbreak(fd)
             key = sys.stdin.read(1)
