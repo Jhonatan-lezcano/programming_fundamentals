@@ -8,12 +8,19 @@ else:
     import tty
 
 def get_key():
+    """Devuelve 'up', 'down', 'enter', o el carácter presionado"""
     if os.name == 'nt':
         key = msvcrt.getch()
-        if key == b'\xe0':  # flechas
+        if key == b'\xe0':  # Tecla especial (como flechas)
             key = msvcrt.getch()
-            return key
-        return key
+            if key == b'H':
+                return 'up'
+            elif key == b'P':
+                return 'down'
+        elif key == b'\r':
+            return 'enter'
+        else:
+            return key.decode()
     else:
         fd = sys.stdin.fileno()
         old_settings = termios.tcgetattr(fd)
@@ -21,11 +28,13 @@ def get_key():
             tty.setraw(fd)
             key = sys.stdin.read(3)
             if key == '\x1b[A':
-                return b'H'  # flecha arriba
+                return 'up'
             elif key == '\x1b[B':
-                return b'P'  # flecha abajo
+                return 'down'
+            elif key == '\n':
+                return 'enter'
             else:
-                return key.encode()
+                return key
         finally:
             termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
 
@@ -34,7 +43,8 @@ def menu(titulo, opciones):
 
     while True:
         os.system('cls' if os.name == 'nt' else 'clear')
-        print(titulo)
+        print(titulo + "\n")
+
         for i, opcion in enumerate(opciones):
             if i == seleccionado:
                 print(f"> {opcion} <")
@@ -42,13 +52,21 @@ def menu(titulo, opciones):
                 print(f"  {opcion}")
 
         key = get_key()
-        if key == b'H':  # flecha arriba
+        if key == 'up':
             seleccionado = (seleccionado - 1) % len(opciones)
-        elif key == b'P':  # flecha abajo
+        elif key == 'down':
             seleccionado = (seleccionado + 1) % len(opciones)
-        elif key == b'\r':  # Enter
+        elif key == 'enter':
             return opciones[seleccionado]
 
-# Uso del menú
-opcion = menu("Selecciona una opción:", ["Ver datos", "Agregar entrada", "Eliminar entrada", "Salir"])
-print(f"Elegiste: {opcion}")
+# Ejemplo de uso
+if __name__ == "__main__":
+    jugadores = {
+        "Jhonatan": {"name": "Jhonatan", "score": 10, "token": "X"},
+        "Maria": {"name": "Maria", "score": 15, "token": "O"}
+    }
+
+    opciones = list(jugadores.keys()) + ["Nuevo jugador"]
+
+    seleccion = menu("Selecciona un jugador:", opciones)
+    print(f"\nElegiste: {seleccion}")
