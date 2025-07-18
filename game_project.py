@@ -135,7 +135,6 @@ def valid_int(message):
         except ValueError:
             continue
 
-
 def print_request_column(player, table): 
     while True:
         column = valid_int(f'{player.name}, indica un número de columna o pulsa [S] para tentar a la suerte: ')
@@ -167,7 +166,7 @@ def count_right(row, column, table, player):
     columns = len(table[0])
     count = 0
     for i in range(column, columns):
-        if count == WIN_TOKENS:
+        if count >= WIN_TOKENS:
             return count
         if table[row][i] == player.token:
             count += 1
@@ -178,18 +177,18 @@ def count_right(row, column, table, player):
 def count_left(row, column, table, player): 
     count = 0
     for i in range(column, -1, -1):
-        if count == WIN_TOKENS:
+        if count >= WIN_TOKENS:
             return count
         if table[row][i] == player.token:
             count += 1
         else:
-            count: 0
+            count = 0
     return count
 
 def count_top(row, column, table, player):
     count = 0    
     for i in range(row, -1, -1):
-        if count == WIN_TOKENS:
+        if count >= WIN_TOKENS:
             return count
         if table[i][column] == player.token:
             count += 1
@@ -202,7 +201,7 @@ def count_top_right(row, column, table, player):
     irow = row
     icolumn = column
     while irow >= 0 and icolumn < len(table[0]):
-        if count == WIN_TOKENS:
+        if count >= WIN_TOKENS:
             return count
         if table[irow][icolumn] == player.token:
             count += 1
@@ -217,7 +216,7 @@ def count_top_left(row, column, table, player):
     irow = row
     icolumn = column
     while irow >= 0 and icolumn >= 0:
-        if count == WIN_TOKENS:
+        if count >= WIN_TOKENS:
             return count
         if table[irow][icolumn] == player.token:
             count += 1
@@ -231,7 +230,7 @@ def count_bottom(row, column, table, player):
     count = 0
     rows = len(table)
     for i in range(row, rows):
-        if count == WIN_TOKENS:
+        if count >= WIN_TOKENS:
             return count
         if table[i][column] == player.token:
             count += 1
@@ -244,7 +243,7 @@ def count_bottom_right(row, column, table, player):
     irow = row
     icolumn = column
     while irow < len(table) and icolumn < len(table[0]):
-        if count == WIN_TOKENS:
+        if count >= WIN_TOKENS:
             return count
         if table[irow][icolumn] == player.token:
             count += 1
@@ -259,7 +258,7 @@ def count_bottom_left(row, column, table, player):
     irow = row
     icolumn = column
     while irow < len(table) and icolumn >= 0:
-        if count == WIN_TOKENS:
+        if count >= WIN_TOKENS:
             return count
         if table[irow][icolumn] == player.token:
             count += 1
@@ -330,11 +329,11 @@ def game(table, player_1, player_2, score):
         if is_draw(table):
             render_table(table)
             draw(player_1, player_2)
+            score.add_players([player_1, player_2])
             score.print_score()
             break
         current_player = player_1 if current_player == player_2 else player_2
     
-
 def runGame():
     print('*** CUATRO SEGUIDAS***')
     score = Score()
@@ -346,5 +345,4 @@ def runGame():
             score.export_hist()
             break
 
-# Launch the game
 runGame()
