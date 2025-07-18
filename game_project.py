@@ -1,5 +1,54 @@
 import random
 from datetime import datetime
+import os
+import sys
+
+if os.name == 'nt':
+    import msvcrt
+else:
+    import termios
+    import tty
+
+def get_key():
+    if os.name == 'nt':
+        key = msvcrt.getch()
+        if key == b'\xe0': #
+            key = msvcrt.getch()
+            return key
+        return key
+    else:
+        fd = sys.stdin.fileno() # obtener el descriptor de archivo del teclado
+        old_settings = termios.tcgetattr(fd) # save current config
+        try:
+            tty.setraw(fd)
+            key = sys.stdin.read(3)
+            if key == '\x1b[A':
+                return b'H'
+            elif key == '\x1b[B':
+                return b'P'
+            else:
+                return key.encode()
+        finally:
+            termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+
+def menu(title, options):
+    selected = 0
+    while True:
+        os.system('cls' if os.name == 'nt' else 'clear')
+        print(title)
+        for i, option in enumerate(options):
+            if i == selected:
+                print(f'{option} <')
+            else:
+                print(f'{option}')
+        
+        key = get_key()
+        if key == b'H':
+            selected = (selected - 1) % len(options)
+        elif key == b'P':
+            selected = (selected + 1) % len(options)
+        elif key == b'\r':
+            return options[selected] 
 
 ROWS = 6
 COLUMNS = 7
@@ -13,6 +62,7 @@ class Player:
     name = ''
     token = ''
     score = 0
+    use_help = False
 
     def __input_token(self, message):
         while True:
@@ -25,9 +75,12 @@ class Player:
             except ValueError:
                 continue
 
-    def set_name(self, num_player):
-        name = input(f'Por favor indique nombre de participante #{num_player}: ')
-        self.name = name
+    def set_name(self, num_or_name):
+        if type(num_or_name) == int:
+            name = input(f'Por favor indique nombre de participante #{num_or_name}: ')
+            self.name = name
+        else:
+            self.name = num_or_name
 
     def set_token(self, player = None):
         if not player: 
@@ -41,6 +94,8 @@ class Player:
     def set_score(self, points):
         self.score += points
         
+    def set_use_help(self):
+        self.use_help = True
     
     def get_token(self):
         return self.token
@@ -81,13 +136,23 @@ class Score:
                     print(hi, file=hist)
                 print('', file=hist)
   
-def init():
+def init(score):
     player_1 = Player()
     player_2 = Player()
-    player_1.set_name('1')
-    player_1.set_token()
-    player_2.set_name('2')
-    player_2.set_token(player_1)
+    if len(score.dic_players) > 0:
+        options = ["Nuevo jugador"] + list(score.dic_players.keys())
+        option_selected = menu('Selecciona un jugador:', options)
+        player_1.set_name(option_selected if option_selected != 'Nuevo jugador' else 1)
+        player_1.set_token()
+        option_selected = menu('Selecciona un jugador:', options)
+        player_2.set_name(option_selected if option_selected != 'Nuevo jugador' else 2)
+        player_2.set_token(player_1)
+    else:
+        player_1.set_name(1)
+        player_1.set_token()
+        player_2.set_name(2)
+        player_2.set_token(player_1)
+
     table = create_table(ROWS, COLUMNS)
 
     return player_1, player_2, table
@@ -127,19 +192,24 @@ def choose_random_player(player_1, player_2):
     print(f'La partida la inicia {random_player.name}')
     return  random_player
 
-def valid_int(message):
+def valid_int(message, player):
     while True:
+        num = input(message).strip()
+
+        if num.lower() == 's':
+            player.set_use_help()
+            return random.randint(1, COLUMNS)
+        
         try:
-            num = int(input(message))
-            return num
+            return int(num)
         except ValueError:
             continue
 
 def print_request_column(player, table): 
     while True:
-        column = valid_int(f'{player.name}, indica un número de columna o pulsa [S] para tentar a la suerte: ')
+        column = valid_int(f'{player.name}, indica un número de columna o pulsa [S] para tentar a la suerte: ', player)
         if 0 <=column > len(table[0]):
-            print(f'numero de columna no permitido, ingrese un numero entre 1 y {COLUMNS}')
+            print(f'Numero de columna no permitido, ingrese un numero entre 1 y {COLUMNS}')
         elif table[0][column - 1] != EMPTY_CELL:
             print('La columna seleccionada ya está llena')
         else:
@@ -286,8 +356,12 @@ def is_win(table, player):
 
 def win_game(player):
     print(f'¡Felicitaciones, {player.name}, has ganado la partida!')
-    print('Has sumado 3 puntos en esta partida')
-    player.set_score(3)        
+    if player.use_help :
+        print('Has sumado 2 puntos en esta partida (Por usar ayudas)')
+        player.set_score(2)
+    else:
+        print('Has sumado 3 puntos en esta partida')
+        player.set_score(3)        
 #endregion
 
 #region draw    
@@ -338,7 +412,7 @@ def runGame():
     print('*** CUATRO SEGUIDAS***')
     score = Score()
     while True :    
-        player_1, player_2, table = init()
+        player_1, player_2, table = init(score)
         game(table, player_1, player_2, score)
         if not replay():
             print('¡Gracias por jugar!')
