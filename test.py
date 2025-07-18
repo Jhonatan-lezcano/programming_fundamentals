@@ -25,12 +25,16 @@ def get_key():
         fd = sys.stdin.fileno()
         old_settings = termios.tcgetattr(fd)
         try:
-            tty.setraw(fd)
-            key = sys.stdin.read(3)
-            if key == '\x1b[A':
-                return 'up'
-            elif key == '\x1b[B':
-                return 'down'
+            tty.setcbreak(fd)
+            key = sys.stdin.read(1)
+            if key == '\x1b':  # Puede ser una tecla especial
+                next1 = sys.stdin.read(1)
+                if next1 == '[':
+                    next2 = sys.stdin.read(1)
+                    if next2 == 'A':
+                        return 'up'
+                    elif next2 == 'B':
+                        return 'down'
             elif key == '\n':
                 return 'enter'
             else:
