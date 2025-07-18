@@ -10,24 +10,37 @@ else:
     import tty
 
 def get_key():
+    """Devuelve 'up', 'down', 'enter', o el carácter presionado"""
     if os.name == 'nt':
         key = msvcrt.getch()
-        if key == b'\xe0': #
+        if key == b'\xe0':  # Tecla especial (como flechas)
             key = msvcrt.getch()
-            return key
-        return key
+            if key == b'H':
+                return 'up'
+            elif key == b'P':
+                return 'down'
+        elif key == b'\r':
+            return 'enter'
+        else:
+            return key.decode()
     else:
-        fd = sys.stdin.fileno() # obtener el descriptor de archivo del teclado
-        old_settings = termios.tcgetattr(fd) # save current config
+        fd = sys.stdin.fileno()
+        old_settings = termios.tcgetattr(fd)
         try:
-            tty.setraw(fd)
-            key = sys.stdin.read(3)
-            if key == '\x1b[A':
-                return b'H'
-            elif key == '\x1b[B':
-                return b'P'
+            tty.setcbreak(fd)
+            key = sys.stdin.read(1)
+            if key == '\x1b':  # Puede ser una tecla especial
+                next1 = sys.stdin.read(1)
+                if next1 == '[':
+                    next2 = sys.stdin.read(1)
+                    if next2 == 'A':
+                        return 'up'
+                    elif next2 == 'B':
+                        return 'down'
+            elif key == '\n':
+                return 'enter'
             else:
-                return key.encode()
+                return key
         finally:
             termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
 
@@ -36,19 +49,19 @@ def menu(title, options):
     while True:
         os.system('cls' if os.name == 'nt' else 'clear')
         print(title)
-        for i, option in enumerate(options):
+        for i, opcion in enumerate(options):
             if i == selected:
-                print(f'{option} <')
+                print(f"> {opcion} <")
             else:
-                print(f'{option}')
-        
+                print(f"  {opcion}")
+
         key = get_key()
-        if key == b'H':
+        if key == 'up':
             selected = (selected - 1) % len(options)
-        elif key == b'P':
+        elif key == 'down':
             selected = (selected + 1) % len(options)
-        elif key == b'\r':
-            return options[selected] 
+        elif key == 'enter':
+            return options[selected]
 
 ROWS = 6
 COLUMNS = 7
